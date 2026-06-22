@@ -34,31 +34,31 @@ jobs:
       - name: Build Linux binaries
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="-s -w -X main.Version=${{ github.event.inputs.version }}" \
             -o dist/tutuck-server-linux-amd64 .
 
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="-s -w -X main.Version=${{ github.event.inputs.version }}" \
             -o dist/tutuck-server-linux-arm64 .
 
       - name: Build macOS binaries
         run: |
           CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="-s -w -X main.Version=${{ github.event.inputs.version }}" \
             -o dist/tutuck-server-macos-amd64 .
 
           CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="-s -w -X main.Version=${{ github.event.inputs.version }}" \
             -o dist/tutuck-server-macos-arm64 .
 
       - name: Build Windows binaries
         run: |
           CGO_ENABLED=0 GOOS=windows GOARCH=amd64 \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="-s -w -X main.Version=${{ github.event.inputs.version }}" \
             -o dist/tutuck-server-windows-amd64.exe .
 
           CGO_ENABLED=0 GOOS=windows GOARCH=arm64 \
-            go build -trimpath -ldflags="-s -w" \
+            go build -trimpath -ldflags="-s -w -X main.Version=${{ github.event.inputs.version }}" \
             -o dist/tutuck-server-windows-arm64.exe .
 
       - name: Create tag
