@@ -8,13 +8,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 )
 
 func main() {
 	configPath := "config.toml"
-	cfg := loadConfig(configPath)
+	cfg = loadConfig(configPath)
 
 	portFlag := flag.Int(
 		"p", cfg.Port, "server port")
@@ -45,6 +46,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ServerInfo.Fingerprint = ssh.FingerprintSHA256(private.PublicKey())
 
 	config := &ssh.ServerConfig{
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
@@ -88,7 +91,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Started TuTuck on port %s! Server ID is 0\n", port)
+	fmt.Printf("Server is running TuTuck %s on port %s\n", Version, port)
+	ServerInfo.StartTime = time.Now()
 
 	go startConsole()
 
@@ -126,7 +130,7 @@ func main() {
 		fmt.Printf("Authenticated %s (%d)\n", getName(userID), userID)
 		go ssh.DiscardRequests(reqs)
 
-		go func(uid int, chans <-chan ssh.NewChannel, maxClients int) {
+		go func(uid int, chans <-chan ssh.NewChannel) {
 			for newChannel := range chans {
 				if newChannel.ChannelType() != "session" {
 					newChannel.Reject(ssh.UnknownChannelType, "Only session channels are supported")
@@ -140,7 +144,7 @@ func main() {
 					continue
 				}
 
-				if len(clients) >= maxClients {
+				if len(clients) >= cfg.MaxClients {
 					clLock.Unlock()
 					newChannel.Reject(ssh.ResourceShortage, "Server is full")
 					continue
@@ -155,6 +159,6 @@ func main() {
 
 				go handleClient(ch, uid)
 			}
-		}(userID, chans, cfg.MaxClients)
+		}(userID, chans)
 	}
 }

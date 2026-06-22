@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 func viewOnline(out Output) {
@@ -55,11 +56,10 @@ Chatting:
   @0 or @server      → message server
   :me <action>       → describe your action
 
-Info:
+  :info              → check server info
   :online or :ls     → see online users
   :who <uid|name>    → get user info
-  :name              → show your username
-  :name change       → change your username
+  :name [change]     → show or change your username
 `
 			out.WriteLine(helpText)
 		case ":dm":
@@ -93,6 +93,31 @@ Info:
 			}
 			setActiveDM(uid, tUser.ID)
 			out.WriteLine(fmt.Sprintf("You entered DM with %s", tUser.Name))
+		case ":info", ":about":
+			dmLog := "disabled"
+			if cfg.LogDMs {
+				dmLog = "enabled (!)"
+			}
+
+			clLock.Lock()
+			onlineCount := len(clients)
+			clLock.Unlock()
+			// TODO: use admin's username instead of @Server
+			infoText := fmt.Sprintf(`
+TuTuck Server Info
+==================
+Version: %s
+Uptime: %s
+
+DM logging %s
+Online: %d/%d
+
+Report any issues to @Server
+
+Fingerprint:
+  %s
+`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, ServerInfo.Fingerprint)
+			out.WriteLine(infoText)
 		case ":online", ":ls":
 			viewOnline(out)
 		case ":me":
@@ -118,7 +143,7 @@ Info:
 			}
 			out.WriteLine("Usage:\n  :name        → show your name\n  :name change → change your username")
 		case ":stop":
-			if uid == 0 {
+			if uid == ServerID {
 				os.Exit(0)
 			}
 			return

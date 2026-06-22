@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -25,7 +24,7 @@ func isMessageTooLong(msg string) bool {
 }
 
 func getName(uid int) string {
-	if uid == 0 {
+	if uid == ServerID {
 		return "Server"
 	}
 	userLock.Lock()
@@ -62,32 +61,6 @@ func findUser(uidOrName any) *User {
 		}
 	}
 	return nil
-}
-
-func sendMsg(to any, from, toName, text string) {
-	timeStr := time.Now().Format("15:04")
-	msg := fmt.Sprintf("%s -> %s | %s\n: %s\n", from, toName, timeStr, text)
-
-	switch ch := to.(type) {
-	case ssh.Channel:
-		ch.Write([]byte(msg))
-	case Output:
-		ch.WriteLine(msg)
-	default:
-		fmt.Printf("Unknown output type: %T\n%s", to, msg)
-	}
-}
-
-func printMsg(from, to, text string) {
-	timeStr := time.Now().Format("15:04")
-
-	msg := fmt.Sprintf("%s -> %s | %s \n: %s \n",
-		from, to,
-		timeStr,
-		text,
-	)
-
-	fmt.Printf("%s", msg)
 }
 
 func changeName(ch ssh.Channel, uid int, firstTime bool) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -10,8 +11,10 @@ import (
 func startConsole() {
 	go func() {
 		rl, err := readline.NewEx(&readline.Config{
-			Prompt:      "> ",
-			HistoryFile: "console.log",
+			Prompt:          "> ",
+			HistoryFile:     "console.log",
+			InterruptPrompt: "^C",
+			EOFPrompt:       "exit",
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -19,10 +22,14 @@ func startConsole() {
 		defer rl.Close()
 
 		out := ConsoleOutput{}
-		out.WriteLine("TuTuck Server Console Started. Type :help for commands.")
+		out.WriteLine("Console Started. Type :help for commands.")
 
 		for {
 			line, err := rl.Readline()
+			if err == readline.ErrInterrupt {
+				fmt.Println("Press ^C again to stop server")
+				return
+			}
 			if err != nil {
 				break
 			}
@@ -34,4 +41,8 @@ func startConsole() {
 			handleCommand(out, 0, line)
 		}
 	}()
+}
+
+func printToConsole(senderID int, target string, text string) {
+	fmt.Print(composeMsg(getName(senderID), target, text))
 }

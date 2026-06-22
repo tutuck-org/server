@@ -1,8 +1,44 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
+	"time"
+
+	"golang.org/x/crypto/ssh"
 )
+
+type Message struct {
+	From string
+	To   string
+	Time string
+	Text string
+}
+
+func composeMsg(from, to, text string) Message {
+	return Message{
+		From: from,
+		To:   to,
+		Time: time.Now().Format("15:04"),
+		Text: text}
+}
+
+func (m Message) String() string {
+	return fmt.Sprintf(
+		"%s -> %s | %s\n: %s\n",
+		m.From, m.To, m.Time, m.Text)
+}
+
+func sendMsg(out any, msg Message) {
+	switch ch := out.(type) {
+	case ssh.Channel:
+		ch.Write([]byte(msg.String()))
+	case Output:
+		ch.WriteLine(msg.String())
+	default:
+		fmt.Printf("Unknown output type: %T\n%s", out, msg.String())
+	}
+}
 
 func sendMessage(out Output, senderID int, target string, text string) {
 	switch target {
@@ -16,21 +52,17 @@ func sendMessage(out Output, senderID int, target string, text string) {
 }
 
 func sendToServer(out Output, senderID int, text string) {
-	printMsg(getName(senderID), "Server", text)
-	sendMsg(out, "You", "Server", text)
+	printToConsole(senderID, "Server", text)
+	sendMsg(out, composeMsg(getName(senderID), "Server", text))
 }
 
 func sendToAll(senderID int, text string) {
 	clLock.Lock()
 	defer clLock.Unlock()
-	for id, c := range clients {
-		if id == senderID {
-			sendMsg(c, "You", "All", text)
-		} else {
-			sendMsg(c, getName(senderID), "All", text)
-		}
+	for _, c := range clients {
+		sendMsg(c, composeMsg(getName(senderID), "All", text))
 	}
-	printMsg(getName(senderID), "All", text)
+	printToConsole(senderID, "All", text)
 }
 
 func sendToUser(out Output, senderID int, target string, text string) {
@@ -57,12 +89,9 @@ func sendToUser(out Output, senderID int, target string, text string) {
 		return
 	}
 
-	if receiverID == senderID {
-		sendMsg(out, "You", "Yourself", text)
-		return
+	sendMsg(out, composeMsg(getName(senderID), getName(receiverID), text))
+	sendMsg(recv, composeMsg(getName(senderID), getName(receiverID), text))
+	if cfg.LogDMs {
+		printToConsole(senderID, getName(receiverID), text)
 	}
-
-	sendMsg(out, "You", getName(receiverID), text)
-	sendMsg(recv, getName(senderID), "You", text)
-	printMsg(getName(senderID), getName(receiverID), text)
 }

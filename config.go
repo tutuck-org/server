@@ -7,14 +7,18 @@ import (
 )
 
 type Config struct {
-	Port       int `toml:"port"`
-	MaxClients int `toml:"max_clients"`
+	Port       int  `toml:"port"`
+	MaxClients int  `toml:"max_clients"`
+	LogDMs     bool `toml:"log_dms"`
 }
+
+var cfg Config
 
 func loadConfig(path string) Config {
 	cfg := Config{
 		Port:       4756,
 		MaxClients: 100,
+		LogDMs:     false,
 	}
 
 	data, err := os.ReadFile(path)
