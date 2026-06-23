@@ -8,5 +8,7 @@ A messenger in terminal. Simple. Secure. Works via ssh.
 
 ## How do I try it?
 First, you need a server. You can self host it or ask a friend. Download latest server binaries for your OS in [Releases](https://github.com/tutuck-org/server/releases/latest/)
+
 Once you got a server to connect to, choose a client you like. There are 2 clients for now - [TUI](https://github.com/tutuck-org/client-tui/) and [CLI](https://github.com/tutuck-org/client-cli/). Both provide same features, just different UI.
+
 Download client, connect to the server... Done! Explore
