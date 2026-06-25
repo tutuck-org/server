@@ -59,9 +59,10 @@ Chatting:
   :info              → check server info
   :online or :ls     → see online users
   :who <uid|name>    → get user info
-  :name [change]     → show or change your username
+  :name              → show your username
+  :name change       → change your username
 `
-			sendSysPacket(ch, helpText)
+			sendSysPacket(ch, "%s", helpText)
 		case ":dm":
 			if len(fields) < 2 {
 				sendSysPacket(ch, "Usage: :dm <uid|name|off>")
@@ -102,8 +103,7 @@ Chatting:
 			clLock.Lock()
 			onlineCount := len(clients)
 			clLock.Unlock()
-			infoText := fmt.Sprintf(`
-TuTuck Server Info
+			infoText := fmt.Sprintf(`TuTuck Server Info
 ==================
 Version: %s
 Uptime: %s
@@ -114,9 +114,8 @@ Online: %d/%d
 Report any issues to @%s
 
 Fingerprint:
-  %s
-`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
-			sendSysPacket(ch, infoText)
+  %s`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
+			sendSysPacket(ch, "%s", infoText)
 		case ":online", ":ls":
 			viewOnline(ch)
 		case ":me":

@@ -31,8 +31,11 @@ type Packet struct {
 
 	Type PacketType `json:"type"`
 
-	FromID    int       `json:"from,omitempty"`
-	ToID      int       `json:"to,omitempty"`
+	FromID int    `json:"fromid,omitempty"`
+	From   string `json:"from,omitempty"`
+	ToID   int    `json:"toid,omitempty"`
+	To     string `json:"to,omitempty"`
+
 	Scope     ScopeType `json:"scope,omitempty"`
 	Direction string    `json:"direction,omitempty"`
 	Content   string    `json:"content,omitempty"`
@@ -47,7 +50,9 @@ func sendMsgPacket(ch ssh.Channel, from, to int, scope ScopeType, direction, con
 	sendPacket(ch, Packet{
 		Type:      TypeMessage,
 		FromID:    from,
+		From:      getName(from),
 		ToID:      to,
+		To:        getName(to),
 		Scope:     scope,
 		Direction: direction,
 		Content:   content,
