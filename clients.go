@@ -16,8 +16,6 @@ var (
 )
 
 func handleClient(ch ssh.Channel, uid int) {
-	out := ChannelOutput{ch: ch}
-
 	defer func() {
 		clLock.Lock()
 		if c, ok := clients[uid]; ok {
@@ -33,13 +31,28 @@ func handleClient(ch ssh.Channel, uid int) {
 	user := findUser(uid)
 	userLock.Unlock()
 
+	firstTime := false
 	if user.Name == "" {
-		changeName(ch, uid, true)
+		firstTime = true
 	}
 
+	if firstTime {
+		changeName(ch, uid, firstTime)
+	}
+
+	userLock.Lock()
+	user = findUser(uid)
+	userLock.Unlock()
+
+	sendPacket(ch, Packet{
+		Type: TypeIdentity,
+		ID:   uid,
+		Name: user.Name,
+	})
+
 	fmt.Printf("New connection: %s (%d) at %s\n", user.Name, uid, time.Now().Format("15:04"))
-	broadcastJoin(uid)
-	viewOnline(ChannelOutput{ch: ch})
+	broadcastJoin(uid, firstTime)
+	viewOnline(ch)
 
 	buf := make([]byte, 2048)
 
@@ -57,11 +70,11 @@ func handleClient(ch ssh.Channel, uid int) {
 		msg := strings.TrimSpace(string(buf[:n]))
 		if msg == "" || isMessageTooLong(msg) {
 			if isMessageTooLong(msg) {
-				out.WriteLine("Error: message is too long (max 2048 chars)")
+				sendErrPacket(ch, "Error: message is too long (max 2048 chars)")
 			}
 			continue
 		}
 
-		handleCommand(out, uid, msg)
+		handleCommand(ch, uid, msg)
 	}
 }
