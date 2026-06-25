@@ -64,22 +64,22 @@ func findUser(uidOrName any) *User {
 }
 
 func changeName(ch ssh.Channel, uid int, firstTime bool) {
-	for {
-		if firstTime {
-			ch.Write([]byte("Welcome to TuTuck! Please set a username: "))
-		} else {
-			ch.Write([]byte("Enter a new username: "))
-		}
+	if firstTime {
+		sendSysPacket(ch, "Welcome to TuTuck! Please set a username: ")
+	} else {
+		sendSysPacket(ch, "Enter a new username: ")
+	}
 
+	for {
 		buf := make([]byte, 256)
 		n, err := ch.Read(buf)
 		if err != nil || n == 0 {
-			continue
+			return
 		}
 		input := strings.TrimSpace(string(buf[:n]))
 
 		if input == "" {
-			ch.Write([]byte("Username cannot be empty, try again.\n"))
+			sendSysPacket(ch, "Username cannot be empty, try again.\n")
 			continue
 		}
 
@@ -91,7 +91,7 @@ func changeName(ch ssh.Channel, uid int, firstTime bool) {
 			}
 		}
 		if !valid {
-			ch.Write([]byte("Username can only contain letters a-z or A-Z, try again.\n"))
+			sendSysPacket(ch, "Username can only contain letters a-z or A-Z, try again.\n")
 			continue
 		}
 
@@ -105,13 +105,13 @@ func changeName(ch ssh.Channel, uid int, firstTime bool) {
 		}
 		if duplicate {
 			userLock.Unlock()
-			ch.Write([]byte("This username is already taken, choose another.\n"))
+			sendSysPacket(ch, "This username is already taken, choose another.\n")
 			continue
 		}
 
 		if _, ok := reservedNames[strings.ToLower(input)]; ok {
 			userLock.Unlock()
-			ch.Write([]byte("This username is reserved, choose another.\n"))
+			sendSysPacket(ch, "This username is reserved, choose another.\n")
 			continue
 		}
 
@@ -131,9 +131,9 @@ func changeName(ch ssh.Channel, uid int, firstTime bool) {
 		saveUsers()
 
 		if firstTime {
-			ch.Write([]byte(fmt.Sprintf("You registered as %s!\n", input)))
+			sendSysPacket(ch, "You registered as %s!\n", input)
 		} else {
-			ch.Write([]byte(fmt.Sprintf("You changed your name from %s to %s!\n", oldName, input)))
+			sendSysPacket(ch, "You changed your name from %s to %s!\n", oldName, input)
 		}
 		break
 	}

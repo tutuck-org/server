@@ -2,54 +2,60 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"time"
-
-	"golang.org/x/crypto/ssh"
 )
 
-func broadcastJoin(uid int) {
+func broadcastJoin(uid int, firstTime bool) {
 	clLock.Lock()
-	defer clLock.Unlock()
+	clientsCopy := maps.Clone(clients)
+	clLock.Unlock()
 
-	for id, ch := range clients {
-		var msg string
+	for id, ch := range clientsCopy {
 		if id == uid {
-			msg = fmt.Sprintf("You (%s) joined at %s\nTip: use :help to see available commands\n", getName(uid), time.Now().Format("15:04"))
+			sendSysPacket(ch, "You (%s) joined at %s", getName(uid), time.Now().Format("15:04"))
+
+			if firstTime {
+				sendSysPacket(ch, "Tip: use :help to see available commands")
+			}
 		} else {
-			msg = fmt.Sprintf("%s joined at %s\n", getName(uid), time.Now().Format("15:04"))
+			sendSysPacket(ch, "%s joined at %s", getName(uid), time.Now().Format("15:04"))
 		}
-		ch.Write([]byte(msg))
 	}
+
+	printToConsole(uid, "joined at %s", time.Now().Format("15:04"))
 }
 
 func broadcastLeave(uid int) {
 	clLock.Lock()
-	defer clLock.Unlock()
+	clientsCopy := maps.Clone(clients)
+	clLock.Unlock()
 
-	msg := fmt.Sprintf("%s disconnected\n", getName(uid))
-	for _, ch := range clients {
-		ch.Write([]byte(msg))
+	for _, ch := range clientsCopy {
+		sendSysPacket(ch, "%s left at %s\n", getName(uid), time.Now().Format("15:04"))
 	}
 
+	printToConsole(uid, "left at %s", time.Now().Format("15:04"))
 	clearActiveDMByTarget(uid)
 }
 
 func broadcastAction(uid int, action string) {
 	clLock.Lock()
-	clientsCopy := make(map[int]ssh.Channel, len(clients))
-	for k, v := range clients {
-		clientsCopy[k] = v
-	}
+	clientsCopy := maps.Clone(clients)
 	clLock.Unlock()
 
 	for id, ch := range clientsCopy {
-		var msg string
 		if id == uid {
-			msg = fmt.Sprintf("You (%s) %s \n", getName(uid), action)
+			sendSysPacket(ch, "You (%s) %s", getName(uid), action)
 		} else {
-			msg = fmt.Sprintf("%s %s \n", getName(uid), action)
+			sendSysPacket(ch, "%s %s", getName(uid), action)
 		}
-		ch.Write([]byte(msg))
 	}
 	fmt.Printf("%s (%d) %s\n", getName(uid), uid, action)
+}
+
+func broadcastMsg(from int, content string) {
+	deliverMessage(from, BroadcastID, ScopeGlobal, content)
+
+	fmt.Printf("%s (%d) | %s\n: %s\n", getName(from), from, time.Now().Format("15:04"), content)
 }

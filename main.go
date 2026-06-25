@@ -35,6 +35,7 @@ func main() {
 
 	loadUsers()
 	loadBans()
+	initServerUser()
 
 	privateBytes, err := os.ReadFile("server.key")
 	if err != nil {

@@ -5,38 +5,39 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 )
 
-func viewOnline(out Output) {
+func viewOnline(ch ssh.Channel) {
 	clLock.Lock()
 	defer clLock.Unlock()
 	if len(clients) == 0 {
-		out.WriteLine("Error: no users online")
+		sendErrPacket(ch, "Error: no users online")
 		return
 	}
-	var uids []string
+	var uNames []string
 	for uid := range clients {
-		uids = append(uids, fmt.Sprintf("%s", getName(uid)))
+		uNames = append(uNames, fmt.Sprintf("%s", getName(uid)))
 	}
-	out.WriteLine("Online users: " + strings.Join(uids, ", "))
+	sendSysPacket(ch, "Online users: %s", strings.Join(uNames, ", "))
 }
 
-func checkWho(out Output, line string) {
+func checkWho(ch ssh.Channel, line string) {
 	target := strings.TrimPrefix(line, "@")
 	userLock.Lock()
 	tUser := findUser(target)
 	userLock.Unlock()
 
 	if tUser == nil {
-		out.WriteLine("Error: User not found")
+		sendErrPacket(ch, "Error: User not found")
 		return
 	}
 
-	response := fmt.Sprintf("%s (%d), pubkey:\n%s", tUser.Name, tUser.ID, tUser.Key)
-	out.WriteLine(response)
+	sendSysPacket(ch, "%s (%d), pubkey:\n%s", tUser.Name, tUser.ID, tUser.Key)
 }
 
-func handleCommand(out Output, uid int, msg string) {
+func handleCommand(ch ssh.Channel, uid int, msg string) {
 	fields := strings.Fields(msg)
 
 	if strings.HasPrefix(msg, ":") {
@@ -52,47 +53,47 @@ Chatting:
   :dm <uid|name>     → start private chat
   :dm off            → exit DM
   @<uid|name> <msg>  → message user
-  @* or @everyone    → broadcast to all
-  @0 or @server      → message server
+  @server            → message server
   :me <action>       → describe your action
 
   :info              → check server info
   :online or :ls     → see online users
   :who <uid|name>    → get user info
-  :name [change]     → show or change your username
+  :name              → show your username
+  :name change       → change your username
 `
-			out.WriteLine(helpText)
+			sendSysPacket(ch, "%s", helpText)
 		case ":dm":
 			if len(fields) < 2 {
-				out.WriteLine("Usage: :dm <uid|name|off>")
+				sendSysPacket(ch, "Usage: :dm <uid|name|off>")
 				return
 			}
 			arg := fields[1]
 			if arg == "off" || arg == "exit" {
 				clearActiveDM(uid)
-				out.WriteLine("Exited DM mode")
+				sendSysPacket(ch, "Exited DM mode")
 				return
 			}
 			userLock.Lock()
 			tUser := findUser(arg)
 			userLock.Unlock()
 			if tUser == nil {
-				out.WriteLine("Error: user not found")
+				sendErrPacket(ch, "Error: user not found")
 				return
 			}
 			if tUser.ID == uid {
-				out.WriteLine("Error: cannot DM yourself")
+				sendErrPacket(ch, "Error: cannot DM yourself")
 				return
 			}
 			clLock.Lock()
 			_, online := clients[tUser.ID]
 			clLock.Unlock()
 			if !online {
-				out.WriteLine("Error: user is not online")
+				sendErrPacket(ch, "Error: user is not online")
 				return
 			}
 			setActiveDM(uid, tUser.ID)
-			out.WriteLine(fmt.Sprintf("You entered DM with %s", tUser.Name))
+			sendSysPacket(ch, "You entered DM with %s", tUser.Name)
 		case ":info", ":about":
 			dmLog := "disabled"
 			if cfg.LogDMs {
@@ -102,9 +103,7 @@ Chatting:
 			clLock.Lock()
 			onlineCount := len(clients)
 			clLock.Unlock()
-			// TODO: use admin's username instead of @Server
-			infoText := fmt.Sprintf(`
-TuTuck Server Info
+			infoText := fmt.Sprintf(`TuTuck Server Info
 ==================
 Version: %s
 Uptime: %s
@@ -112,61 +111,65 @@ Uptime: %s
 DM logging %s
 Online: %d/%d
 
-Report any issues to @Server
+Report any issues to @%s
 
 Fingerprint:
-  %s
-`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, ServerInfo.Fingerprint)
-			out.WriteLine(infoText)
+  %s`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
+			sendSysPacket(ch, "%s", infoText)
 		case ":online", ":ls":
-			viewOnline(out)
+			viewOnline(ch)
 		case ":me":
 			if len(fields) < 2 {
-				out.WriteLine("Usage: :me <action>")
+				sendSysPacket(ch, "Usage: :me <action>")
 				return
 			}
 			broadcastAction(uid, strings.Join(fields[1:], " "))
 		case ":who":
-			checkWho(out, strings.Join(fields[1:], " "))
+			if len(fields) < 2 {
+				sendErrPacket(ch, "Usage: :who <uid|name>")
+				return
+			}
+			checkWho(ch, strings.Join(fields[1:], " "))
 		case ":name":
 			if len(fields) == 1 {
-				out.WriteLine(fmt.Sprintf("Your current name is: %s", getName(uid)))
+				sendSysPacket(ch, "Your current name is: %s", getName(uid))
 				return
 			}
 			if len(fields) >= 2 && strings.ToLower(fields[1]) == "change" {
-				if ch, ok := out.(ChannelOutput); ok {
-					changeName(ch.ch, uid, false)
-				} else {
-					out.WriteLine("Name change available only for connected users")
-				}
+				changeName(ch, uid, false)
 				return
 			}
-			out.WriteLine("Usage:\n  :name        → show your name\n  :name change → change your username")
+			sendSysPacket(ch, "Usage:\n  :name        → show your name\n  :name change → change your username")
 		case ":stop":
 			if uid == ServerID {
 				os.Exit(0)
 			}
 			return
-		// TODO: implement client disconnect via command
+		// TODO: fix client disconnect (client has autoreconnect)
 		case ":leave", ":quit", ":exit":
-			/*if ch, ok := out.(ChannelOutput); ok {
-				ch.ch.Close()
-			}*/
+			ch.Close()
 			return
 		default:
-			out.WriteLine("Unknown command")
+			sendErrPacket(ch, "Unknown command")
 		}
 		return
 	}
 
 	if strings.HasPrefix(msg, "@") {
 		if len(fields) < 2 {
-			out.WriteLine("Usage: @<uid|name> <message>")
+			sendSysPacket(ch, "Usage: @<uid|name> <message>")
 			return
 		}
 		target := strings.TrimPrefix(fields[0], "@")
+		tUser := findUser(target)
+
+		if tUser == nil {
+			sendErrPacket(ch, "User not found")
+			return
+		}
+
 		text := strings.Join(fields[1:], " ")
-		sendMessage(out, uid, target, text)
+		deliverMessage(uid, tUser.ID, ScopeDM, text)
 		return
 	}
 
@@ -176,11 +179,11 @@ Fingerprint:
 		clLock.Unlock()
 		if recv == nil {
 			clearActiveDM(uid)
-			out.WriteLine("Error: target went offline, exited DM mode")
+			sendErrPacket(ch, "Error: target went offline, exited DM mode")
 			return
 		}
-		sendToUser(out, uid, fmt.Sprintf("%d", targetID), msg)
+		deliverMessage(uid, targetID, ScopeDM, msg)
 	} else {
-		sendToAll(uid, msg)
+		broadcastMsg(uid, msg)
 	}
 }
