@@ -13,13 +13,13 @@ func broadcastJoin(uid int, firstTime bool) {
 
 	for id, ch := range clientsCopy {
 		if id == uid {
+			sendSysPacket(ch, "You (%s) joined at %s", getName(uid), time.Now().Format("15:04"))
+
 			if firstTime {
-				sendSysPacket(ch, "You (%s) joined at %s\nTip: use :help to see available commands\n", getName(uid), time.Now().Format("15:04"))
-			} else {
-				sendSysPacket(ch, "You (%s) joined at %s\n", getName(uid), time.Now().Format("15:04"))
+				sendSysPacket(ch, "Tip: use :help to see available commands")
 			}
 		} else {
-			sendSysPacket(ch, "%s joined at %s\n", getName(uid), time.Now().Format("15:04"))
+			sendSysPacket(ch, "%s joined at %s", getName(uid), time.Now().Format("15:04"))
 		}
 	}
 
@@ -46,9 +46,9 @@ func broadcastAction(uid int, action string) {
 
 	for id, ch := range clientsCopy {
 		if id == uid {
-			sendSysPacket(ch, "You (%s) %s \n", getName(uid), action)
+			sendSysPacket(ch, "You (%s) %s", getName(uid), action)
 		} else {
-			sendSysPacket(ch, "%s %s \n", getName(uid), action)
+			sendSysPacket(ch, "%s %s", getName(uid), action)
 		}
 	}
 	fmt.Printf("%s (%d) %s\n", getName(uid), uid, action)

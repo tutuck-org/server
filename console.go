@@ -58,6 +58,8 @@ TuTuck Server Help
   :info              → check server info 
   :online or :ls     → see online users
   :who <uid|name>    → get user info
+  :ban <uid|name>    → ban user
+  :unban <uid|name>  → unban user
 `
 			fmt.Println(helpText)
 		case ":info", ":about":
@@ -111,6 +113,55 @@ Fingerprint:
 			}
 
 			fmt.Printf("%s (%d), pubkey:\n%s\n", tUser.Name, tUser.ID, tUser.Key)
+		case ":ban":
+			if len(fields) < 2 {
+				fmt.Println("Usage: ban <uid|name>")
+				return
+			}
+
+			userLock.Lock()
+			tUser := findUser(fields[1])
+			userLock.Unlock()
+
+			if tUser == nil {
+				fmt.Println("Error: user not found")
+				return
+			}
+
+			if tUser.ID == ServerID {
+				fmt.Println("Error: not banning server today")
+				return
+			}
+
+			banUser(tUser.ID)
+
+			clLock.Lock()
+			if ch, ok := clients[tUser.ID]; ok {
+				ch.Close()
+			}
+			clLock.Unlock()
+
+			deliverMessage(ServerID, BroadcastID, ScopeGlobal, fmt.Sprintf("%s got banned", tUser.Name))
+			fmt.Printf("Banned %s (%d)\n", tUser.Name, tUser.ID)
+		case ":unban":
+			if len(fields) < 2 {
+				fmt.Println("Usage: unban <uid|name>")
+				return
+			}
+
+			userLock.Lock()
+			tUser := findUser(fields[1])
+			userLock.Unlock()
+
+			if tUser == nil {
+				fmt.Println("Error: user not found")
+				return
+			}
+
+			unbanUser(tUser.ID)
+
+			deliverMessage(ServerID, BroadcastID, ScopeGlobal, fmt.Sprintf("%s got unbanned", tUser.Name))
+			fmt.Printf("Unbanned %s (%d)\n", tUser.Name, tUser.ID)
 		case ":stop":
 			os.Exit(0)
 		default:

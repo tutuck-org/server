@@ -22,6 +22,27 @@ func loadBans() {
 	}
 }
 
+func saveBans() {
+	data, _ := json.MarshalIndent(banned, "", "    ")
+	_ = os.WriteFile("banned.json", data, 0644)
+}
+
+func banUser(uid int) {
+	banLock.Lock()
+	defer banLock.Unlock()
+
+	banned.UIDs[uid] = true
+	saveBans()
+}
+
+func unbanUser(uid int) {
+	banLock.Lock()
+	defer banLock.Unlock()
+
+	delete(banned.UIDs, uid)
+	saveBans()
+}
+
 func isBanned(uid int) bool {
 	banLock.Lock()
 	defer banLock.Unlock()

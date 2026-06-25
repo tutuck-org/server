@@ -30,7 +30,7 @@ func deliverMessage(from, to int, scope ScopeType, content string) {
 		sendMsgPacket(toCh, from, to, scope, "in", content)
 	}
 
-	if fromCh != nil {
+	if fromCh != nil && from != ServerID {
 		sendMsgPacket(fromCh, from, to, scope, "out", content)
 	}
 }
