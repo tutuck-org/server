@@ -58,8 +58,9 @@ TuTuck Server Help
   :info              → check server info 
   :online or :ls     → see online users
   :who <uid|name>    → get user info
-  :ban <uid|name>    → ban user
-  :unban <uid|name>  → unban user
+  :ban <uid|name>
+  :unban <uid|name>
+  :stop
 `
 			fmt.Println(helpText)
 		case ":info", ":about":
@@ -163,6 +164,11 @@ Fingerprint:
 			deliverMessage(ServerID, BroadcastID, ScopeGlobal, fmt.Sprintf("%s got unbanned", tUser.Name))
 			fmt.Printf("Unbanned %s (%d)\n", tUser.Name, tUser.ID)
 		case ":stop":
+			clLock.Lock()
+			onlineCount := len(clients)
+			clLock.Unlock()
+
+			fmt.Printf("Stopping! Server was up for %s. Disconnecting %d clients\n", time.Since(ServerInfo.StartTime).Round(time.Second), onlineCount)
 			os.Exit(0)
 		default:
 			fmt.Println("Unknown command")

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -45,10 +44,10 @@ func handleCommand(ch ssh.Channel, uid int, msg string) {
 		switch cmd {
 		case ":help":
 			helpText := `
+
 TuTuck Help
 ===========
 
-Chatting:
   just <message>     → send to everyone
   :dm <uid|name>     → start private chat
   :dm off            → exit DM
@@ -103,7 +102,9 @@ Chatting:
 			clLock.Lock()
 			onlineCount := len(clients)
 			clLock.Unlock()
-			infoText := fmt.Sprintf(`TuTuck Server Info
+			infoText := fmt.Sprintf(`
+
+TuTuck Server Info
 ==================
 Version: %s
 Uptime: %s
@@ -114,7 +115,8 @@ Online: %d/%d
 Report any issues to @%s
 
 Fingerprint:
-  %s`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
+  %s
+`, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
 			sendSysPacket(ch, "%s", infoText)
 		case ":online", ":ls":
 			viewOnline(ch)
@@ -140,11 +142,6 @@ Fingerprint:
 				return
 			}
 			sendSysPacket(ch, "Usage:\n  :name        → show your name\n  :name change → change your username")
-		case ":stop":
-			if uid == ServerID {
-				os.Exit(0)
-			}
-			return
 		// TODO: fix client disconnect (client has autoreconnect)
 		case ":leave", ":quit", ":exit":
 			ch.Close()
