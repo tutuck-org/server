@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"strings"
 	"time"
@@ -23,7 +24,7 @@ func startConsole() {
 		}
 		defer rl.Close()
 
-		fmt.Println("Console Started. Type :help for commands.")
+		fmt.Println("Console Started. Type /help for commands.")
 
 		for {
 			line, err := rl.Readline()
@@ -44,26 +45,45 @@ func startConsole() {
 	}()
 }
 
+func shutdownServer(reason string) {
+	clLock.Lock()
+	clientsCopy := maps.Clone(clients)
+	clLock.Unlock()
+
+	for _, ch := range clientsCopy {
+		sendErrPacket(ch, "Server is shutting down! Reason: %s", reason)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	for _, ch := range clientsCopy {
+		ch.Close()
+	}
+
+	fmt.Printf("Stopping! Server was up for %s. Disconnecting %d clients\n", time.Since(ServerInfo.StartTime).Round(time.Second), len(clientsCopy))
+	os.Exit(0)
+}
+
 func handleConsole(line string) {
 	fields := strings.Fields(line)
 
-	if strings.HasPrefix(line, ":") {
-		cmd := fields[0]
+	if strings.HasPrefix(line, "/") {
+		cmd := strings.TrimPrefix(fields[0], "/")
 		switch cmd {
-		case ":help":
+		case "help":
 			helpText := `
 TuTuck Server Help
 ==================
 
-  :info              → check server info 
-  :online or :ls     → see online users
-  :who <uid|name>    → get user info
-  :ban <uid|name>
-  :unban <uid|name>
-  :stop
+  /info              → check server info 
+  /online or /ls     → see online users
+  /who <uid|name>    → get user info
+  /ban <uid|name>
+  /unban <uid|name>
+  /stop [reason]
 `
 			fmt.Println(helpText)
-		case ":info", ":about":
+		case "info", "about":
 			dmLog := "disabled"
 			if cfg.LogDMs {
 				dmLog = "enabled (!)"
@@ -86,7 +106,7 @@ Fingerprint:
   %s
 `, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
 			fmt.Println(infoText)
-		case ":online", ":ls":
+		case "online", "ls":
 			clLock.Lock()
 			defer clLock.Unlock()
 			if len(clients) == 0 {
@@ -98,9 +118,9 @@ Fingerprint:
 				uNames = append(uNames, fmt.Sprintf("%s", getName(uid)))
 			}
 			fmt.Printf("Online users: \n%s\n", strings.Join(uNames, ", "))
-		case ":who":
+		case "who":
 			if len(fields) < 2 {
-				fmt.Println("Usage: :who <username or id>")
+				fmt.Println("Usage: /who <username or id>")
 				return
 			}
 			target := strings.TrimPrefix(fields[1], "@")
@@ -114,14 +134,15 @@ Fingerprint:
 			}
 
 			fmt.Printf("%s (%d), pubkey:\n%s\n", tUser.Name, tUser.ID, tUser.Key)
-		case ":ban":
+		case "ban":
 			if len(fields) < 2 {
-				fmt.Println("Usage: ban <uid|name>")
+				fmt.Println("Usage: /ban <uid|name>")
 				return
 			}
 
+			target := strings.TrimPrefix(fields[1], "@")
 			userLock.Lock()
-			tUser := findUser(fields[1])
+			tUser := findUser(target)
 			userLock.Unlock()
 
 			if tUser == nil {
@@ -144,14 +165,15 @@ Fingerprint:
 
 			deliverMessage(ServerID, BroadcastID, ScopeGlobal, fmt.Sprintf("%s got banned", tUser.Name))
 			fmt.Printf("Banned %s (%d)\n", tUser.Name, tUser.ID)
-		case ":unban":
+		case "unban":
 			if len(fields) < 2 {
-				fmt.Println("Usage: unban <uid|name>")
+				fmt.Println("Usage: /unban <uid|name>")
 				return
 			}
 
+			target := strings.TrimPrefix(fields[1], "@")
 			userLock.Lock()
-			tUser := findUser(fields[1])
+			tUser := findUser(target)
 			userLock.Unlock()
 
 			if tUser == nil {
@@ -163,13 +185,15 @@ Fingerprint:
 
 			deliverMessage(ServerID, BroadcastID, ScopeGlobal, fmt.Sprintf("%s got unbanned", tUser.Name))
 			fmt.Printf("Unbanned %s (%d)\n", tUser.Name, tUser.ID)
-		case ":stop":
-			clLock.Lock()
-			onlineCount := len(clients)
-			clLock.Unlock()
+		case "stop":
+			var reason string
+			if len(fields) < 2 {
+				reason = "Server is shutting down."
+			} else {
+				reason = strings.Join(fields[1:], " ")
+			}
 
-			fmt.Printf("Stopping! Server was up for %s. Disconnecting %d clients\n", time.Since(ServerInfo.StartTime).Round(time.Second), onlineCount)
-			os.Exit(0)
+			shutdownServer(reason)
 		default:
 			fmt.Println("Unknown command")
 		}

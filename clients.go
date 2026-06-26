@@ -5,7 +5,6 @@ import (
 	"io"
 	"strings"
 	"sync"
-	"time"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -23,7 +22,6 @@ func handleClient(ch ssh.Channel, uid int) {
 			_ = c.Close()
 		}
 		clLock.Unlock()
-		fmt.Printf("%s (%d) disconnected at %s\n", getName(uid), uid, time.Now().Format("15:04"))
 		broadcastLeave(uid)
 	}()
 
@@ -50,7 +48,6 @@ func handleClient(ch ssh.Channel, uid int) {
 		Name: user.Name,
 	})
 
-	fmt.Printf("New connection: %s (%d) at %s\n", user.Name, uid, time.Now().Format("15:04"))
 	broadcastJoin(uid, firstTime)
 	viewOnline(ch)
 

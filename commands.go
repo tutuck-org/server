@@ -22,7 +22,7 @@ func viewOnline(ch ssh.Channel) {
 	sendSysPacket(ch, "Online users: %s", strings.Join(uNames, ", "))
 }
 
-func checkWho(ch ssh.Channel, line string) {
+func checkWho(ch ssh.Channel, uid int, line string) {
 	target := strings.TrimPrefix(line, "@")
 	userLock.Lock()
 	tUser := findUser(target)
@@ -33,38 +33,41 @@ func checkWho(ch ssh.Channel, line string) {
 		return
 	}
 
+	if uid == tUser.ID {
+		sendSysPacket(ch, "You are %s (%d), your pubkey:\n%s", tUser.Name, tUser.ID, tUser.Key)
+		return
+	}
 	sendSysPacket(ch, "%s (%d), pubkey:\n%s", tUser.Name, tUser.ID, tUser.Key)
 }
 
 func handleCommand(ch ssh.Channel, uid int, msg string) {
 	fields := strings.Fields(msg)
 
-	if strings.HasPrefix(msg, ":") {
-		cmd := fields[0]
+	if strings.HasPrefix(msg, "/") {
+		cmd := strings.TrimPrefix(fields[0], "/")
 		switch cmd {
-		case ":help":
+		case "help":
 			helpText := `
-
 TuTuck Help
 ===========
-
   just <message>     → send to everyone
-  :dm <uid|name>     → start private chat
-  :dm off            → exit DM
+  /dm <uid|name>     → start private chat
+  /dm off            → exit DM
   @<uid|name> <msg>  → message user
   @server            → message server
-  :me <action>       → describe your action
+  /me <action>       → describe your action
 
-  :info              → check server info
-  :online or :ls     → see online users
-  :who <uid|name>    → get user info
-  :name              → show your username
-  :name change       → change your username
+  /info              → check server info
+  /online or :ls     → see online users
+  /whoami            → get to know who you are
+  /who <uid|name>    → get user info
+  /name              → show your username
+  /name change       → change your username
 `
 			sendSysPacket(ch, "%s", helpText)
-		case ":dm":
+		case "dm":
 			if len(fields) < 2 {
-				sendSysPacket(ch, "Usage: :dm <uid|name|off>")
+				sendSysPacket(ch, "Usage: /dm <uid|name|off>")
 				return
 			}
 			arg := fields[1]
@@ -93,7 +96,7 @@ TuTuck Help
 			}
 			setActiveDM(uid, tUser.ID)
 			sendSysPacket(ch, "You entered DM with %s", tUser.Name)
-		case ":info", ":about":
+		case "info", "about":
 			dmLog := "disabled"
 			if cfg.LogDMs {
 				dmLog = "enabled (!)"
@@ -103,7 +106,6 @@ TuTuck Help
 			onlineCount := len(clients)
 			clLock.Unlock()
 			infoText := fmt.Sprintf(`
-
 TuTuck Server Info
 ==================
 Version: %s
@@ -118,21 +120,23 @@ Fingerprint:
   %s
 `, Version, time.Since(ServerInfo.StartTime).Round(time.Second), dmLog, onlineCount, cfg.MaxClients, cfg.Admin, ServerInfo.Fingerprint)
 			sendSysPacket(ch, "%s", infoText)
-		case ":online", ":ls":
+		case "online", "ls":
 			viewOnline(ch)
-		case ":me":
+		case "me":
 			if len(fields) < 2 {
-				sendSysPacket(ch, "Usage: :me <action>")
+				sendSysPacket(ch, "Usage: /me <action>")
 				return
 			}
 			broadcastAction(uid, strings.Join(fields[1:], " "))
-		case ":who":
+		case "whoami":
+			checkWho(ch, uid, getName(uid))
+		case "who":
 			if len(fields) < 2 {
-				sendErrPacket(ch, "Usage: :who <uid|name>")
+				sendErrPacket(ch, "Usage: /who <uid|name>")
 				return
 			}
-			checkWho(ch, strings.Join(fields[1:], " "))
-		case ":name":
+			checkWho(ch, uid, strings.Join(fields[1:], " "))
+		case "name":
 			if len(fields) == 1 {
 				sendSysPacket(ch, "Your current name is: %s", getName(uid))
 				return
@@ -141,9 +145,9 @@ Fingerprint:
 				changeName(ch, uid, false)
 				return
 			}
-			sendSysPacket(ch, "Usage:\n  :name        → show your name\n  :name change → change your username")
+			sendSysPacket(ch, "Usage:\n  /name        → show your name\n  /name change → change your username")
 		// TODO: fix client disconnect (client has autoreconnect)
-		case ":leave", ":quit", ":exit":
+		case "leave", "quit", "exit":
 			ch.Close()
 			return
 		default:

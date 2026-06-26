@@ -131,8 +131,10 @@ func changeName(ch ssh.Channel, uid int, firstTime bool) {
 		saveUsers()
 
 		if firstTime {
+			printToConsole(uid, "has registered as %s", input)
 			sendSysPacket(ch, "You registered as %s!\n", input)
 		} else {
+			printToConsole(uid, "has changed name from %s to %s", oldName, input)
 			sendSysPacket(ch, "You changed your name from %s to %s!\n", oldName, input)
 		}
 		break
