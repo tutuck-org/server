@@ -10,13 +10,12 @@ You can:
    * Self host it
    * Ask a friend
 
-Download latest server binaries:
-  [github.com/tutuck-org/server/releases/latest](https://github.com/tutuck-org/server/releases/latest/)
+Download latest server binaries in [Releases](https://github.com/tutuck-org/server/releases/latest/)
 
 #### 2. Pick a client
-* TUI client
+* [TUI client](https://github.com/tutuck-org/client-tui/)
 
-  [github.com/tutuck-org/client-tui](https://github.com/tutuck-org/client-tui/)
+* [Write own client - Wiki article](https://github.com/tutuck-org/server/wiki/Writing-own-client/)
 
 #### 3. Connect and enjoy!
 
