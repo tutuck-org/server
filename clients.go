@@ -36,6 +36,7 @@ func handleClient(ch ssh.Channel, uid int) {
 
 	if firstTime {
 		changeName(ch, uid, firstTime)
+		chooseColor(ch, uid)
 	}
 
 	userLock.Lock()

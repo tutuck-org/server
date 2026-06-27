@@ -7,9 +7,10 @@ import (
 )
 
 type User struct {
-	ID   int    `json:"id"`
-	Name string `json:"username"`
-	Key  string `json:"key"`
+	ID    int    `json:"id"`
+	Name  string `json:"username"`
+	Color string `json:"color"`
+	Key   string `json:"key"`
 }
 
 type UserStore struct {

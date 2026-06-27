@@ -29,7 +29,7 @@ func startConsole() {
 		for {
 			line, err := rl.Readline()
 			if err == readline.ErrInterrupt {
-				fmt.Println("Press ^C again to stop server")
+				shutdownServer("Killed")
 				return
 			}
 			if err != nil {

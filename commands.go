@@ -61,8 +61,7 @@ TuTuck Help
   /online or :ls     → see online users
   /whoami            → get to know who you are
   /who <uid|name>    → get user info
-  /name              → show your username
-  /name change       → change your username
+  /customize         → change name or color
 `
 			sendSysPacket(ch, "%s", helpText)
 		case "dm":
@@ -136,16 +135,25 @@ Fingerprint:
 				return
 			}
 			checkWho(ch, uid, strings.Join(fields[1:], " "))
-		case "name":
-			if len(fields) == 1 {
-				sendSysPacket(ch, "Your current name is: %s", getName(uid))
+		case "customize", "custom":
+			if len(fields) < 2 {
+				sendSysPacket(ch, `
+Usage:
+  /customize name       → change username
+  /customize color      → change name color
+`)
 				return
 			}
-			if len(fields) >= 2 && strings.ToLower(fields[1]) == "change" {
+
+			switch strings.ToLower(fields[1]) {
+			case "name":
+				sendSysPacket(ch, "Your current name is: %s", getName(uid))
 				changeName(ch, uid, false)
 				return
+			case "color":
+				chooseColor(ch, uid)
+				return
 			}
-			sendSysPacket(ch, "Usage:\n  /name        → show your name\n  /name change → change your username")
 		// TODO: fix client disconnect (client has autoreconnect)
 		case "leave", "quit", "exit":
 			ch.Close()

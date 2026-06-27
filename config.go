@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Port       int    `toml:"port"`
 	MaxClients int    `toml:"max_clients"`
+	EchoMsgs   bool   `toml:"echo_messages"`
 	LogDMs     bool   `toml:"log_dms"`
 	Admin      string `toml:"admin"`
 }
@@ -19,6 +20,7 @@ func loadConfig(path string) Config {
 	cfg := Config{
 		Port:       4756,
 		MaxClients: 100,
+		EchoMsgs:   true,
 		LogDMs:     false,
 		Admin:      "Server",
 	}

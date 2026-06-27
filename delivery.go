@@ -21,6 +21,7 @@ func deliverMessage(from, to int, scope ScopeType, content string) {
 		return
 	case ServerID:
 		fmt.Printf("%s (%d) | %s \n: %s\n", getName(from), from, time.Now().Format("15:04"), content)
+		return
 	}
 
 	toCh := clients[to]
@@ -32,5 +33,9 @@ func deliverMessage(from, to int, scope ScopeType, content string) {
 
 	if fromCh != nil && from != ServerID {
 		sendMsgPacket(fromCh, from, to, scope, "out", content)
+	}
+
+	if cfg.LogDMs {
+		fmt.Printf("%s (%d) -> %s (%d) | %s | Do you like spying on your clients? \n: %s\n", getName(from), from, getName(to), to, time.Now().Format("15:04"), content)
 	}
 }

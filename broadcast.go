@@ -57,5 +57,7 @@ func broadcastAction(uid int, action string) {
 func broadcastMsg(from int, content string) {
 	deliverMessage(from, BroadcastID, ScopeGlobal, content)
 
-	fmt.Printf("%s (%d) | %s\n: %s\n", getName(from), from, time.Now().Format("15:04"), content)
+	if cfg.EchoMsgs {
+		fmt.Printf("%s (%d) | %s\n: %s\n", getName(from), from, time.Now().Format("15:04"), content)
+	}
 }
