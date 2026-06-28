@@ -4,6 +4,10 @@
 A messenger in therminal. Fast, simple, secure. Works via SSH.
 No electron / webview slop. No rust. No bloat.
 
+<img width="720" height="260" alt="tutuck-tui-demo" src="https://github.com/user-attachments/assets/40bb1c54-7d48-4672-9a37-69540d421ed3" />
+
+> [TuTuck TUI](https://github.com/tutuck-org/client-tui/) demo
+
 ## Get started
 #### 1. Get a server
 You can:
