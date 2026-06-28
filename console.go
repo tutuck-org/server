@@ -134,6 +134,35 @@ Fingerprint:
 			}
 
 			fmt.Printf("%s (%d), pubkey:\n%s\n", tUser.Name, tUser.ID, tUser.Key)
+		case "kick":
+			// TODO: fix client auto-reconnect
+			if len(fields) < 2 {
+				fmt.Println("Usage: /kick <uid|name>")
+				return
+			}
+
+			target := strings.TrimPrefix(fields[1], "@")
+			userLock.Lock()
+			tUser := findUser(target)
+			userLock.Unlock()
+
+			if tUser == nil {
+				fmt.Println("Error: user not found")
+				return
+			}
+
+			if tUser.ID == ServerID {
+				fmt.Println("Error: not kicking server today")
+				return
+			}
+
+			clLock.Lock()
+			if ch, ok := clients[tUser.ID]; ok {
+				ch.Close()
+			}
+			clLock.Unlock()
+
+			printToConsole(tUser.ID, "was kicked")
 		case "ban":
 			if len(fields) < 2 {
 				fmt.Println("Usage: /ban <uid|name>")
