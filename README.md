@@ -12,6 +12,8 @@ You can:
 
 Download latest server binaries in [Releases](https://github.com/tutuck-org/server/releases/latest/)
 
+Read about using server in [Wiki: Using the server](https://github.com/tutuck-org/server/wiki/Using-the-server/)
+
 #### 2. Pick a client
 * [TUI client](https://github.com/tutuck-org/client-tui/)
 
