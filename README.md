@@ -1,5 +1,8 @@
 # TuTuck Server
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/tutuck-org/server/.github%2Fworkflows%2Fbuild.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/tutuck-org/server)](https://goreportcard.com/report/github.com/tutuck-org/server)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/tutuck-org/server)
+![GitHub License](https://img.shields.io/github/license/tutuck-org/server)
 
 A messenger in therminal. Fast, simple, secure. Works via SSH.
 No electron / webview slop. No rust. No bloat.
